@@ -8,8 +8,8 @@ const ProblemDetailPage = () => {
   const { id: problemId } = useParams(); // Renamed 'id' to 'problemId' for clarity
   const fetchProblem = useProblemStore((s) => s.fetchProblem);
   const problem = useProblemStore((s) => s.problem);
-  // Import submitSolution action and isSubmitting state from your store
-  const { submitSolution, isSubmitting } = useProblemStore(); 
+  // Import submitSolution action, isSubmitting state, AND submissionResult state from your store
+  const { submitSolution, isSubmitting, submissionResult } = useProblemStore(); 
 
   const [editorData, setEditorData] = useState({
     language: 'javascript',
@@ -45,14 +45,6 @@ const ProblemDetailPage = () => {
     setEditorData({ language: newLanguage, code: newCode });
   };
 
-  // Handler for the "Run Tests" button
-  const handleRunButtonPress = () => {
-    // TODO: Implement logic to run code against sample test cases
-    toast.info("Running tests... (Not yet implemented)");
-    console.log("Running tests for problem:", problemId, "Code:", editorData.code, "Language:", editorData.language);
-  };
-
-  // Handler for the "Submit Code" button
   const handleSubmitButtonPress = async () => {
     if (!problemId || !editorData.language || !editorData.code) {
       toast.error("Please select a language and write some code before submitting.");
@@ -60,15 +52,31 @@ const ProblemDetailPage = () => {
     }
     
     // Call the submitSolution action from your Zustand store
-    // The submitSolution function should handle the API call to your backend
-    // and update the store's state (e.g., isSubmitting, submissionResult)
     await submitSolution(problemId, editorData.language, editorData.code);
-    // The submitSolution function should internally handle toasts for success/failure
   };
 
-  // if isLoading put up an icon
   // You might want a better loading indicator than just a div
   if (!problem) return <div className="min-h-screen flex items-center justify-center text-xl text-primary">Loading problem...</div>;
+
+  // Helper to determine verdict styling
+  const getVerdictColorClass = (verdict) => {
+    switch (verdict) {
+      case 'Accepted':
+        return 'text-success'; // Tailwind success color
+      case 'Wrong Answer':
+      case 'Time Limit Exceeded':
+      case 'Memory Limit Exceeded':
+      case 'Runtime Error':
+      case 'Compilation Error':
+      case 'Failed': // For client-side or generic server errors
+        return 'text-error'; // Tailwind error color
+      case 'Pending':
+      case 'Judging...':
+        return 'text-info'; // Tailwind info color
+      default:
+        return 'text-base-content'; // Default text color
+    }
+  };
 
   return (
     // Add pt-16 for navbar clearance
@@ -118,7 +126,7 @@ const ProblemDetailPage = () => {
                 {problem.constraint.map((item, index) => (
                   <li key={index}>{item}</li>
                 ))}
-              </ul> {/* Closing </ul> tag was missing here */}
+              </ul>
             </div>
           )}
 
@@ -139,8 +147,8 @@ const ProblemDetailPage = () => {
           )}
         </div>
 
-        {/* Right side: Code Editor Panel and Buttons */}
-        <div className="flex-1 min-w-0 flex flex-col"> {/* Use flex-col for stacking editor and buttons */}
+        {/* Right side: Code Editor Panel, Buttons, and Submission Results */}
+        <div className="flex-1 min-w-0 flex flex-col">
           <CodeEditorPanel
             language={editorData.language}
             code={editorData.code}
@@ -149,23 +157,89 @@ const ProblemDetailPage = () => {
           />
           
           {/* Buttons for Run and Submit */}
-          <div className="mt-4 flex gap-4 justify-end"> {/* Added justify-end to align buttons to the right */}
+          <div className="mt-4 flex gap-4 justify-end">
+            {/* You had a 'run' button here previously, adding it back with type="button" */}
             <button
-              type="button" // Important: use type="button" to prevent accidental form submission
-              className="btn btn-outline btn-info w-48" // Styled for "Run Tests"
-              onClick={handleRunButtonPress}
+              type="button"
+              className="btn btn-outline btn-info w-48 justify-center"
+              onClick={() => toast.info("Run tests locally (feature not yet implemented)")}
+              disabled={isSubmitting} // Disable run button while submitting
             >
               Run Tests
             </button>
             <button
-              type="submit" // Use type="submit" if this button is inside a form, otherwise "button"
-              className="btn btn-primary w-48" // Styled for "Submit Code"
+              type="button" // Changed to type="button" to prevent accidental form submission if not wrapped in a form
+              className="btn btn-primary w-48 justify-center"
               onClick={handleSubmitButtonPress}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Code'}
             </button>
           </div>
+
+          {/* === START: SUBMISSION RESULT DISPLAY === */}
+          {submissionResult && (
+            <div className="mt-6 p-4 bg-base-100 shadow-lg rounded-xl">
+              <h3 className="text-xl font-bold mb-2 text-base-content">Submission Result:</h3>
+              
+              {isSubmitting ? (
+                <p className="text-info">Judging your code...</p>
+              ) : (
+                <>
+                  {submissionResult.verdict && (
+                    <p className={`text-2xl font-bold ${getVerdictColorClass(submissionResult.verdict)}`}>
+                      Verdict: {submissionResult.verdict}
+                    </p>
+                  )}
+                  {submissionResult.time && (
+                    <p className="text-base-content mt-1">Time: {submissionResult.time} s</p>
+                  )}
+                  {submissionResult.memory && (
+                    <p className="text-base-content mt-1">Memory: {submissionResult.memory} KB</p>
+                  )}
+
+                  {/* Display stdout (if available and not empty) */}
+                  {submissionResult.stdout && submissionResult.stdout.trim() !== '' && (
+                    <div className="mt-3">
+                      <h4 className="font-semibold text-base-content">Standard Output:</h4>
+                      <pre className="bg-base-300 p-2 rounded-md text-sm overflow-auto max-h-40">
+                        {submissionResult.stdout}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Display stderr (if available and not empty) */}
+                  {submissionResult.stderr && submissionResult.stderr.trim() !== '' && (
+                    <div className="mt-3">
+                      <h4 className="font-semibold text-error">Standard Error:</h4>
+                      <pre className="bg-base-300 p-2 rounded-md text-sm overflow-auto max-h-40">
+                        {submissionResult.stderr}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Display compileOutput (if available and not empty) */}
+                  {submissionResult.compileOutput && submissionResult.compileOutput.trim() !== '' && (
+                    <div className="mt-3">
+                      <h4 className="font-semibold text-error">Compilation Output:</h4>
+                      <pre className="bg-base-300 p-2 rounded-md text-sm overflow-auto max-h-40">
+                        {submissionResult.compileOutput}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Display general details/error message if verdict is 'Failed' or 'Unknown Error' from backend */}
+                  {(submissionResult.verdict === 'Failed' || submissionResult.verdict === 'Unknown Error') && submissionResult.details && (
+                    <div className="mt-3">
+                      <h4 className="font-semibold text-error">Details:</h4>
+                      <p className="text-error">{submissionResult.details}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          {/* === END: SUBMISSION RESULT DISPLAY === */}
         </div>
       </div>
     </div>

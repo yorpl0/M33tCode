@@ -7,7 +7,7 @@ import problemRoutes from "./routes/problem.route.js"; // Import your problem ro
 import { connectDB } from "./lib/db.js"; // Assuming your DB connection is here
 import cookieParser from "cookie-parser";
 import cors from "cors";
-
+import postRoutes from "./routes/post.route.js";
 dotenv.config(); // Load environment variables from .env
 
 const app = express();
@@ -23,7 +23,7 @@ app.use(cors({
 // --- Routes ---
 app.use("/api/auth", authRoutes); // Auth routes (login, signup, etc.)
 app.use("/api/problems", problemRoutes); // Problem and submission routes
-
+app.use("/api/posts",postRoutes);
 // --- Server Start ---
 const PORT = process.env.PORT || 5000; // Use port from .env or default to 5000
 

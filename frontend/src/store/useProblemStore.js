@@ -46,7 +46,7 @@ const useProblemStore = create((set) => ({
     console.log("calling store with:",id);
     set({ isLoading: true });
     try {
-      const res = await axiosInstance.get(`/auth/admin/problems/${id}`);
+      const res = await axiosInstance.get(`/auth/problems/${id}`);
       set({ problem: res.data });
     } catch (error) {
       console.error("Error in fetching problem", error);

@@ -47,9 +47,11 @@ export const signup=async (req,res)=>{
 
     };
 export const login=async (req,res)=>{
-    const {email,username,password}=req.body;
+    const {email,username,password}=req.body; // Note: You're accepting both email and username, but only querying by email
     try{
-        const user=await User.findOne({email});
+        // Adjust query to find by either email or username, depending on your login strategy
+        const user=await User.findOne({ $or: [{ email: email }, { username: username }] }); 
+
         if(!user){
             return res.status(400).json({message:"Invalid credentials"})
         };
@@ -57,6 +59,11 @@ export const login=async (req,res)=>{
         if(!isPasswordCorrect){
             return res.status(400).json({message:"Invalid credentials"})
         }
+
+    
+        generateToken(user._id, res); 
+
+
         return res.status(200).json({
                 _id: user._id,
                 username:user.username,
@@ -67,7 +74,6 @@ export const login=async (req,res)=>{
         console.log("Error in login controller",error);
         return res.status(500).json({message:"Internal server error"});
     }
-
 };
 export const logout=(req,res)=>{
     try{

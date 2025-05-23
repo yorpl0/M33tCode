@@ -21,12 +21,17 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* This flex container aligns the right-side elements */}
+          <div className="flex items-center gap-2"> 
+            {/* Posts link - placed here so it's always visible but aligned */}
+            <Link to={"/posts"} className={'btn btn-sm gap-2'}>
+              <span className="justify-center">Posts</span>
+            </Link>
+
             <Link
               to={"/settings"}
               className={`
               btn btn-sm gap-2 transition-colors
-              
               `}
             >
               <Settings className="w-4 h-4" />
@@ -40,7 +45,7 @@ export const Navbar = () => {
                   <span className="hidden sm:inline">Profile</span>
                 </Link>
 
-                <button className="flex gap-2 items-center hover:cursor-pointer" onClick={logout}>
+                <button className="flex gap-2 items-center btn btn-ghost btn-sm" onClick={logout}> {/* Added btn classes for consistent styling */}
                   <LogOut className="size-5" />
                   <span className="hidden sm:inline">Logout</span>
                 </button>

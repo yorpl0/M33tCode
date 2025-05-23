@@ -1,6 +1,7 @@
 import Post from "../models/post.model.js";
 import Comment from "../models/comment.model.js";
 export const createPost=async (req,res)=>{
+    console.log("reached createPost")
     const userId=req.user._id;
     const {title,content} = req.body;
     if(!title || !content){

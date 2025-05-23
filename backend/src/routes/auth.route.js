@@ -4,14 +4,13 @@ import { checkAdminRoute, protectRoute } from "../middleware/auth.middleware.js"
 import { createComment, createPost } from "../controllers/post.controller.js";
 import { createProblem } from "../controllers/problem.controller.js";
 import Problem from "../models/problem.model.js";
+import Post from "../models/post.model.js";
 const router=express.Router();
 router.post("/signup",signup);
 router.post("/login",login);
 router.post("/logout",logout);
 router.post("/update-profile",protectRoute,updateProfile);
 router.get("/check", protectRoute, checkAuth);
-router.post("/posts",protectRoute,createPost);
-router.post("/posts/:id/comments",protectRoute,createComment);
 router.post("/admin/problems",protectRoute,checkAdminRoute,createProblem);
 router.get("/admin/problems",async(req,res)=>{
     try {
@@ -22,7 +21,7 @@ router.get("/admin/problems",async(req,res)=>{
     res.status(500).json({ message: "Failed to fetch problems" });
 }
 });
-router.get("/admin/problems/:id",async(req,res)=>{
+router.get("/problems/:id",async(req,res)=>{
     
     const {id}=req.params;
     const problem= await Problem.findById(id);
