@@ -35,9 +35,6 @@ A full-stack online coding platform built with the MERN stack. It integrates rea
 - Secure route guards
 
 ---
-
-
-
 ### Backend Setup
 
 ```bash
@@ -82,7 +79,11 @@ project-root/
 ```
 
 ---
-##  Create a `.env` file inside the `backend` folder with the following variables:
+### 🔧 Environment Variables
+
+Create a `.env` file inside the `backend` directory with the following variables:
+
+```env
 # MongoDB connection string
 MONGODB_URI=your_mongodb_uri
 
@@ -95,18 +96,19 @@ JWT_SECRET_KEY=your_jwt_secret
 # Node environment
 NODE_ENV=development
 
-# Cloudinary credentials
+# Cloudinary configuration
 CLOUDINARY_API=your_cloudinary_api_key
 CLOUDINARY_SECRET_KEY=your_cloudinary_secret_key
 CLOUDINARY_NAME=your_cloudinary_cloud_name
 
-# Judge0 API
+# Judge0 API configuration
 JUDGE0_API_URL=https://judge0-ce.p.rapidapi.com
 RAPIDAPI_KEY=your_rapidapi_key
 RAPIDAPI_HOST=judge0-ce.p.rapidapi.com
 
-# Frontend (Vite) environment variable for backend API
+# Backend API URL (used by the frontend)
 VITE_BACKEND_API_URL=http://localhost:5001/api
+```
 
 ## Admin Role
 Only users with admin privileges can:
