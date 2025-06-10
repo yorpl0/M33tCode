@@ -54,14 +54,14 @@ npm install
 
   ```bash
   cd backend
-  npm start
+  npm run dev
   ```
 
 * **Frontend**:
 
   ```bash
   cd frontend
-  npm start
+  npm run dev
   ```
 
 ---
