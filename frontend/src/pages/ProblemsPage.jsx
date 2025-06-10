@@ -12,7 +12,7 @@ export const ProblemsPage = () => {
     examples: [{ input: "", output: "", explanation: "" }],
     testCases: [{ input: "", expectedOutput: "", isHidden: true }],
     timeLimit: 1,
-    memoryLimit: 256,
+    memoryLimit: 2048,
   });
 
   const { createProblem, isCreating } = useProblemStore();

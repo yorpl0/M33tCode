@@ -47,9 +47,9 @@ export const signup=async (req,res)=>{
 
     };
 export const login=async (req,res)=>{
-    const {email,username,password}=req.body; // Note: You're accepting both email and username, but only querying by email
+    const {email,username,password}=req.body; 
     try{
-        // Adjust query to find by either email or username, depending on your login strategy
+
         const user=await User.findOne({ $or: [{ email: email }, { username: username }] }); 
 
         if(!user){
@@ -93,7 +93,10 @@ export const updateProfile=async (req,res)=>{
     if(!profilePic){
         return res.status(400).json({message:"invalid profielpic"})
     };
-    const uploadedResponse= await cloudinary.uploader.upload(profilePic);
+    const uploadedResponse = await cloudinary.uploader.upload(profilePic, {
+    transformation: [{ width: 500, height: 500, crop: "limit" }],
+    });
+
     const updatedUser= await User.findByIdAndUpdate(userId,{profilePic:uploadedResponse.secure_url},{new:true})
     res.status(200).json(updatedUser);
     }

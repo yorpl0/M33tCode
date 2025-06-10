@@ -158,15 +158,7 @@ const ProblemDetailPage = () => {
           
           {/* Buttons for Run and Submit */}
           <div className="mt-4 flex gap-4 justify-end">
-            {/* You had a 'run' button here previously, adding it back with type="button" */}
-            <button
-              type="button"
-              className="btn btn-outline btn-info w-48 justify-center"
-              onClick={() => toast.info("Run tests locally (feature not yet implemented)")}
-              disabled={isSubmitting} // Disable run button while submitting
-            >
-              Run Tests
-            </button>
+            {/* CAN ADD RUN TESTS IF REQUIRED*/}
             <button
               type="button" // Changed to type="button" to prevent accidental form submission if not wrapped in a form
               className="btn btn-primary w-48 justify-center"

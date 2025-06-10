@@ -3,54 +3,54 @@ import Submission from "../models/submission.model.js";
 import axios from 'axios';
 
 
-// --- Judge0 Configuration ---
 const JUDGE0_API_URL = process.env.JUDGE0_API_URL;
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY; // Use the new variable name
-const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST; // New variable for RapidAPI Host
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST;
 
-// Helper to map language names to Judge0 Language IDs
-// IMPORTANT: Verify these IDs against your Judge0 instance's `/languages` endpoint
 const getJudge0LanguageId = (language) => {
     switch (language.toLowerCase()) {
-        case 'cpp': return 54; // C++ (GCC 9.2.0)
-        case 'java': return 62; // Java (OpenJDK 13.0.1)
-        case 'python': return 71; // Python (3.8.1)
-        case 'javascript': return 63; // JavaScript (Node.js 12.14.0)
-        default: return null; // Or throw an error for unsupported language
+        case 'cpp': return 54;
+        case 'java': return 62;
+        case 'python': return 71;
+        case 'javascript': return 63;
+        default: return null;
     }
 };
+const toBase64 = (str) => Buffer.from(str || "", 'utf8').toString('base64');
 
-// --- Controller for Creating a New Problem ---
+const decodeBase64 = (str) => {
+    if (str) {
+        try {
+            return Buffer.from(str, 'base64').toString('utf8');
+        } catch (e) {
+            return str;
+        }
+    }
+    return null;
+};
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+
 export const createProblem = async (req, res) => {
-    console.log("Reached createProblem:", req.body);
     const {
         title,
         description,
         difficulty,
-        tags, // <--- Now directly expecting 'tags' as an array
-        constraint, // <--- Now directly expecting 'constraint' as an array
+        tags,
+        constraint,
         examples,
         testCases,
         timeLimit,
         memoryLimit
     } = req.body;
 
-    // Basic validation for required fields
     if (!title?.trim() || !description?.trim() || !difficulty || !examples || examples.length === 0 || !testCases || testCases.length === 0) {
         return res.status(400).json({ message: "Title, Description, Difficulty, at least one Example, and at least one Test Case are required." });
     }
-    console.log("1");
 
-    // --- REMOVED: processedTags and processedConstraints logic ---
-    // The frontend is now responsible for sending these as processed arrays.
-
-    // Validate tags and constraints directly (assuming they are arrays from frontend)
-    // We'll still filter and trim here to ensure no empty strings or whitespace-only strings are saved.
     const finalTags = Array.isArray(tags) ? tags.map(tag => tag.trim()).filter(tag => tag !== '') : [];
     const finalConstraints = Array.isArray(constraint) ? constraint.map(c => c.trim()).filter(c => c !== '') : [];
-
-    console.log("finalTags:", finalTags);
-    console.log("finalConstraints:", finalConstraints);
 
     if (finalTags.length === 0) {
         return res.status(400).json({ message: "At least one tag is required." });
@@ -58,28 +58,23 @@ export const createProblem = async (req, res) => {
     if (finalConstraints.length === 0) {
         return res.status(400).json({ message: "At least one constraint is required." });
     }
-    console.log("2");
 
-    // Check if problem with this title already exists
     const existing = await Problem.findOne({ title: title.trim() });
     if (existing) {
         return res.status(409).json({ message: "Problem with this title already exists" });
     }
-    console.log("3");
 
-    // Create new Problem document
     const newProblem = new Problem({
         title: title.trim(),
         description: description.trim(),
         difficulty,
-        tags: finalTags, // <--- Use the directly received/validated array
-        constraint: finalConstraints, // <--- Use the directly received/validated array
+        tags: finalTags,
+        constraint: finalConstraints,
         examples,
         testCases,
         timeLimit: timeLimit || 1,
         memoryLimit: memoryLimit || 2048,
     });
-    console.log("4:", newProblem);
     try {
         await newProblem.save();
         return res.status(201).json(newProblem);
@@ -89,41 +84,31 @@ export const createProblem = async (req, res) => {
     }
 };
 
-// --- Problem Submission Controller ---
+
 export const handleSubmitProblem = async (req, res) => {
+    console.log("reached handlesubmit")
     const { language, code } = req.body;
     const { problemId } = req.params;
-    // Assuming req.user._id is populated by your protectRoute middleware
     const userId = req.user._id; 
-    console.log("Reached handleSubmit", { language, code, problemId, userId });
 
     if (!problemId || !language || !code) {
         return res.status(400).json({ message: 'Problem ID, language, and code are required.' });
     }
 
     const judge0LanguageId = getJudge0LanguageId(language);
-    console.log("lang id:", judge0LanguageId);
     if (judge0LanguageId === null) {
         return res.status(400).json({ message: 'Unsupported programming language.' });
     }
-
-    // --- CRITICAL DEBUGGING: Check URL and API Key values ---
-    console.log("DEBUG: JUDGE0_API_URL for request:", JUDGE0_API_URL);
-    console.log("DEBUG: RAPIDAPI_KEY for request:", RAPIDAPI_KEY ? '******' : 'UNDEFINED/NULL');
-    console.log("DEBUG: RAPIDAPI_HOST for request:", RAPIDAPI_HOST);
-    // -----------------------------------------------------------
 
     if (!JUDGE0_API_URL || !RAPIDAPI_KEY || !RAPIDAPI_HOST) {
         console.error("Missing Judge0 API configuration in environment variables.");
         return res.status(500).json({ message: "Server configuration error: Judge0 API credentials are not set." });
     }
 
-
     let newSubmission;
 
     try {
         const problem = await Problem.findById(problemId);
-        console.log("Problem deets", { problem });
         if (!problem) {
             return res.status(404).json({ message: 'Problem not found.' });
         }
@@ -131,13 +116,16 @@ export const handleSubmitProblem = async (req, res) => {
             return res.status(400).json({ message: 'Problem has no test cases defined. Cannot judge.' });
         }
 
-        const firstTestCase = problem.testCases[0]; // Get the first test case
-        if (!firstTestCase) {
-            return res.status(400).json({ message: 'Problem has no test cases to judge against.' });
-        }
 
-        const inputForJudge0 = firstTestCase.input;
-        const expectedOutputForJudge0 = firstTestCase.expectedOutput; // Ensure this is 'expectedOutput'
+        const submissionsPayload = problem.testCases.map(testCase => ({
+            source_code: toBase64(code),
+            language_id: judge0LanguageId,
+            stdin: toBase64(testCase.input),
+            expected_output: toBase64(testCase.expectedOutput),
+            cpu_time_limit:  2,
+            memory_limit: 65536,
+        }));
+
 
         newSubmission = new Submission({
             problem: problemId,
@@ -145,61 +133,145 @@ export const handleSubmitProblem = async (req, res) => {
             userCode: code,
             userLanguage: language,
             verdict: 'Pending',
+            testCaseResults: [],
         });
         await newSubmission.save();
-        console.log("New submission:", newSubmission);
-        
-        const judge0Payload = {
-            source_code: code,
-            language_id: judge0LanguageId,
-            stdin: inputForJudge0,
-            expected_output: expectedOutputForJudge0,
-            cpu_time_limit: problem.timeLimit || 1,
-            memory_limit: 2048,
-            base64_encoded: false,
-        };
 
         const judge0Headers = {
             'Content-Type': 'application/json',
-            'X-RapidAPI-Key': RAPIDAPI_KEY,    // Use the RapidAPI Key
-            'X-RapidAPI-Host': RAPIDAPI_HOST,  // Add the RapidAPI Host header
+            'X-RapidAPI-Key': RAPIDAPI_KEY,
+            'X-RapidAPI-Host': RAPIDAPI_HOST,
         };
 
-        const judge0Response = await axios.post(
-            `${JUDGE0_API_URL}/submissions?base64_encoded=false&wait=true`,
-            judge0Payload,
+        // Submit batch to Judge0 to get tokens
+        const judge0TokensResponse = await axios.post(
+            `${JUDGE0_API_URL}/submissions/batch?base64_encoded=true&wait=false`,
+            { submissions: submissionsPayload },
             { headers: judge0Headers }
         );
 
-        const judge0Result = judge0Response.data;
-        console.log("Result:", judge0Result);
+        const judge0Tokens = judge0TokensResponse.data;
 
-        newSubmission.judge0SubmissionToken = judge0Result.token;
-        newSubmission.verdict = judge0Result.status?.description || 'Unknown Error';
-        newSubmission.stdout = judge0Result.stdout;
-        newSubmission.stderr = judge0Result.stderr;
-        newSubmission.compileOutput = judge0Result.compile_output;
-        newSubmission.time = judge0Result.time;
-        newSubmission.memory = judge0Result.memory;
+        let overallVerdict = 'Accepted';
+        let verdictPriority = {
+            'Accepted': 0, 'Accepted (with warnings)': 1, 'Wrong Answer': 2,
+            'Time Limit Exceeded': 3, 'Memory Limit Exceeded': 4,
+            'Runtime Error (NZEC)': 5, 'Runtime Error': 5, 'SIGSEGV': 5, 'SIGXFSZ': 5, 'SIGFPE': 5, 'NZEC': 5,
+            'Internal Error': 6, 'Compilation Error': 7, 'Unknown Error': 8, 'Partial Accepted': 9,
+            'In Queue': 10, 'Processing': 11
+        };
+        let highestPriorityVerdict = 'Accepted'; 
+        let highestPriorityValue = verdictPriority['Accepted'];
+
+        let totalTime = 0;
+        let totalMemory = 0;
+        const testCaseResults = [];
+
+        // Fetch results for each token by polling
+        for (let i = 0; i < judge0Tokens.length; i++) {
+            const { token } = judge0Tokens[i];
+            const testCase = problem.testCases[i]; 
+            let result = null;
+            let currentTestCaseVerdict = 'In Queue';
+
+            let attempts = 0;
+            const maxAttempts = 10;
+            const pollInterval = 1000;
+
+            while (
+                (currentTestCaseVerdict === 'In Queue' || currentTestCaseVerdict === 'Processing') && 
+                attempts < maxAttempts
+            ) {
+                if (attempts > 0) {
+                    await sleep(pollInterval);
+                }
+                attempts++;
+                try {
+                    const singleSubmissionResponse = await axios.get(
+                        `${JUDGE0_API_URL}/submissions/${token}?base64_encoded=true&fields=*`,
+                        { headers: judge0Headers }
+                    );
+                    result = singleSubmissionResponse.data;
+                    currentTestCaseVerdict = result.status?.description || 'Unknown Error';
+                } catch (pollError) {
+                    console.error(`Error polling for token ${token}:`, pollError.message);
+                    currentTestCaseVerdict = 'Judge0 API Error';
+                    result = { stdout: null, stderr: `Error polling: ${pollError.message}`, compile_output: null, time: null, memory: null, status: { description: 'Judge0 API Error' } };
+                    break;
+                }
+            }
+
+            if (currentTestCaseVerdict === 'In Queue' || currentTestCaseVerdict === 'Processing') {
+                currentTestCaseVerdict = 'Unknown Error (Timeout)';
+                result = { stdout: null, stderr: 'Judge0 did not return result within timeout.', compile_output: null, time: null, memory: null, status: { description: 'Unknown Error (Timeout)' } };
+            }
+
+            const decodedStdout = decodeBase64(result.stdout);
+            const decodedStderr = decodeBase64(result.stderr);
+            const decodedCompileOutput = decodeBase64(result.compile_output);
+            
+            const safeTime = parseFloat(result.time);
+            const safeMemory = parseInt(result.memory);
+
+            testCaseResults.push({
+                input: testCase.input,
+                expectedOutput: testCase.expectedOutput,
+                actualOutput: decodedStdout, 
+                verdict: currentTestCaseVerdict,
+                time: isNaN(safeTime) ? null : safeTime,
+                memory: isNaN(safeMemory) ? null : safeMemory,
+                stderr: decodedStderr,
+                compileOutput: decodedCompileOutput,
+            });
+            
+            const currentPriority = verdictPriority[currentTestCaseVerdict] || verdictPriority['Unknown Error'];
+            if (currentPriority > highestPriorityValue) {
+                highestPriorityValue = currentPriority;
+                highestPriorityVerdict = currentTestCaseVerdict;
+            }
+
+            totalTime += isNaN(safeTime) ? 0 : safeTime;
+            totalMemory = Math.max(totalMemory, isNaN(safeMemory) ? 0 : safeMemory);
+
+        }
+        console.log("TESTCASE RESULTS:",testCaseResults);
+        overallVerdict = highestPriorityVerdict; 
+
+        newSubmission.judge0SubmissionToken = judge0Tokens.length > 0 ? judge0Tokens[0].token : null; 
+        newSubmission.verdict = overallVerdict;
+        newSubmission.stdout = testCaseResults.find(tc => tc.actualOutput)?.actualOutput || null; 
+        newSubmission.stderr = testCaseResults.find(tc => tc.stderr)?.stderr || null;
+        newSubmission.compileOutput = testCaseResults.find(tc => tc.compileOutput)?.compileOutput || null;
+
+        newSubmission.time = totalTime; 
+        newSubmission.memory = totalMemory; 
+        newSubmission.testCaseResults = testCaseResults; 
 
         await newSubmission.save();
 
         res.status(201).json({
             message: 'Code submitted and judged successfully!',
             submission: newSubmission,
-            verdict: newSubmission.verdict // Return verdict for frontend
+            verdict: newSubmission.verdict, 
+            testCaseResults: newSubmission.testCaseResults, 
         });
 
     } catch (error) {
         console.error('Error in handleSubmitProblem:', error.message);
         if (error.response) {
             console.error('Judge0 API Error Response:', error.response.data);
-            return res.status(error.response.status).json({ // Use actual status from Judge0 if available
+            if (newSubmission && newSubmission._id) {
+                await Submission.findByIdAndUpdate(newSubmission._id, {
+                    verdict: 'Judge0 API Error',
+                    stderr: JSON.stringify(error.response.data),
+                    compileOutput: error.message
+                });
+            }
+            return res.status(error.response.status).json({
                 message: error.response.data.message || 'Error communicating with judging server.',
-                details: error.response.data.error || error.response.data, // Judge0 errors often have 'error' key
+                details: error.response.data.error || error.response.data,
             });
         } else if (newSubmission && newSubmission._id) {
-            // Update the submission if an error occurred after saving it initially
             await Submission.findByIdAndUpdate(newSubmission._id, {
                 verdict: 'Server Error',
                 stderr: `Submission failed: ${error.message}`

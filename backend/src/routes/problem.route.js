@@ -10,12 +10,12 @@ const router = express.Router();
 // Route to submit code for a specific problem
 // Client will POST to /api/problems/:problemId/submit with { language, code } in body
 router.post("/:problemId/submit", protectRoute, handleSubmitProblem);
-
 // Route to get details of a specific submission by its ID
 // Client will GET from /api/problems/submissions/:submissionId
 router.get("/submissions/:submissionId", protectRoute, getSubmissionDetails);
-router.post("/admin/problems",protectRoute,checkAdminRoute,createProblem);
-router.get("/problems",async(req,res)=>{
+router.post("/admin/",protectRoute,checkAdminRoute,createProblem);
+router.get("/",async(req,res)=>{
+    //console.log("reached problem route") // DEBUG
     try {
         const problems=await Problem.find();
         res.status(200).json(problems);

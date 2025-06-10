@@ -16,7 +16,7 @@ const useProblemStore = create((set) => ({
     console.log("reached problem store:");
     set({ isCreating: true });
     try {
-      const res = await axiosInstance.post("/auth/admin/problems", data);
+      const res = await axiosInstance.post("/problems/admin/", data);
       set({ problem: res.data });
       toast.success("Problem has been created");
     } catch (error) {
@@ -30,9 +30,11 @@ const useProblemStore = create((set) => ({
   },
 
   fetchProblems: async () => {
+    //console.log("reached problem store")
     set({ isLoading: true });
     try {
-      const res = await axiosInstance.get("/auth/admin/problems");
+      const res = await axiosInstance.get("/problems");
+      console.log("RES:",res);
       set({ problems: res.data });
     } catch (e) {
       console.error("Error in fetching problems", e);
@@ -46,7 +48,7 @@ const useProblemStore = create((set) => ({
     console.log("calling store with:",id);
     set({ isLoading: true });
     try {
-      const res = await axiosInstance.get(`/auth/problems/${id}`);
+      const res = await axiosInstance.get(`/problems/${id}`);
       set({ problem: res.data });
     } catch (error) {
       console.error("Error in fetching problem", error);

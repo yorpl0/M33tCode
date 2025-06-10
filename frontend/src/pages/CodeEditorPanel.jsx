@@ -18,6 +18,7 @@ const CodeEditorPanel = ({ language, code, onLanguageChange, onCodeChange }) => 
           <option value="cpp">C++</option>
         </select>
       </div>
+
      
       <div className="flex-1">
         <CodeEditor

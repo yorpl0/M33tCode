@@ -15,6 +15,7 @@ import ProblemDetailPage from "./pages/ProblemDetailPage.jsx";
 import CodeEditorPanel from "./pages/CodeEditorPanel.jsx"; // Assuming this is a page, not just a panel
 import ShowPostsPage from "./pages/ShowPostsPage.jsx";
 import CreatePostPage from "./pages/CreatePostPage.jsx";
+import PostDetailPage from "./pages/PostDetailPage.jsx";
 
 const App = () => {
   window.authStore = useAuthStore;
@@ -48,6 +49,7 @@ const App = () => {
           <Route path="/test" element={<CodeEditorPanel/>}/> 
           <Route path="/posts" element={<ShowPostsPage />} />
           <Route path="/create-post" element={<CreatePostPage />} />
+          <Route path="/posts/:id" element={<PostDetailPage />} />
         </Routes>
       </div>
   )
