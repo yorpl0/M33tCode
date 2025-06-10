@@ -1,7 +1,5 @@
 
-###  `README.md`
 
-````markdown
 # Online Coding Platform
 
 A full-stack online coding platform built with the MERN stack. It integrates real-time code compilation using Judge0, provides a powerful Monaco-based code editor, supports community interaction through posts and comments, and includes an admin interface for managing problems.
