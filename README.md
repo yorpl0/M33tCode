@@ -115,3 +115,6 @@ Only users with admin privileges can:
 * Create, edit, or delete coding problems.
 * Moderate community content (optional, based on extension).
 ---
+Acknowledgments
+---
+This project was inspired by LeetCode and Coding Club , IIT Guwahati. Thanks to the creators of Express, MongoDB, Mongoose, TypeScript, and React.
